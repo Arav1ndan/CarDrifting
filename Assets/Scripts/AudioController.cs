@@ -3,65 +3,71 @@ using UnityEngine.Events;
 using System.Collections;
 public class AudioController : MonoBehaviour
 {
-   public AudioSource EngineIdel;
-    public AudioSource RunningSource;
-    public AudioSource StartSound;
-    public float MinimumPitchValue = 0.5f;
-    public float MaximumPitchValue = 3f;
-    public float speedToPitchFactor = 0.01f;
-    public CarMovement CarMovement;
-    [Space(15)]
-    public UnityAction StartEngineSound;
-    public UnityAction StartIdelSound;
-    public UnityAction StartRunningSound;
+   public AudioSource runningSound;
+    public float runningMaxVolume;
+    public float runningMaxPitch;
+    public AudioSource reverseSound;
+    public float reverseMaxVolume;
+    public float reverseMaxPitch;
+    public AudioSource idleSound;
+    public float idleMaxVolume;
+    public float speedRatio;
+    private float revLimiter;
+    public float LimiterSound = 1f;
+    public float LimiterFrequency = 3f;
+    public float LimiterEngage = 0.8f;
+    public bool isEngineRunning = false;
 
-    bool isPlaying = false;
+    public AudioSource startingSound;
+    private CarMovement carMove;
     void Start()
     {
-        CarMovement CarMovement = GetComponent<CarMovement>();
-        if(CarMovement != null)
+        carMove = GetComponent<CarMovement>();
+        idleSound.volume = 0;
+        runningSound.volume = 0;
+        reverseSound.volume = 0;
+    }
+    void Update()
+    {
+        float SpeedSign = 0;
+        if(carMove)
         {
-            StartEngineSound += StartEngine;
-            
+            SpeedSign = Mathf.Sign(carMove.Car_SpeedKPH);
+            speedRatio = Mathf.Abs(carMove.Car_SpeedKPH);
         }
-        StartIdelSound += PlayEngineIdelSound;
-        StartRunningSound += RunningEngineSound;
+        if(speedRatio > LimiterEngage)
+        {
+            revLimiter = (Mathf.Sin(Time.time * LimiterFrequency) + 1f) * LimiterSound * (speedRatio - LimiterEngage);
+        }
+         if (isEngineRunning)
+        {
+            idleSound.volume = Mathf.Lerp(0.1f, idleMaxVolume, speedRatio);
+            if (SpeedSign > 0)
+            {
+                reverseSound.volume = 0;
+                runningSound.volume = Mathf.Lerp(0.3f, runningMaxVolume, speedRatio);
+                runningSound.pitch = Mathf.Lerp(runningSound.pitch, Mathf.Lerp(0.3f, runningMaxPitch, speedRatio) + revLimiter, Time.deltaTime);
+            }
+            else
+            {
+                runningSound.volume = 0;
+                reverseSound.volume = Mathf.Lerp(0f, reverseMaxVolume, speedRatio);
+                reverseSound.pitch = Mathf.Lerp(reverseSound.pitch, Mathf.Lerp(0.2f, reverseMaxPitch, speedRatio) + revLimiter, Time.deltaTime);
+            }
+        }
+        else {
+            idleSound.volume = 0;
+            runningSound.volume = 0;
+        }
     }
-    public void StartEngine()
+    public IEnumerator StartEngine()
     {
-        
-        StartSound.enabled = true;
-    }
-   public void PlayEngineIdelSound()
-    {
-        if(!isPlaying){
-       StartCoroutine(PlayIdelSound());}
-    }
-    IEnumerator PlayIdelSound()
-    {   
-        isPlaying = true;
-        Debug.Log("wait after 0.3f");
-        yield return new WaitForSeconds(1f);
-        EngineIdel.enabled = true;
-        isPlaying = false;
-    }
-    public void RunningEngineSound()
-    {
-        float speedRatio = CarMovement.Car_SpeedKPH / CarMovement.MaximumSpeed;
-        float targetPitch = Mathf.Lerp(MinimumPitchValue,MaximumPitchValue,speedRatio);
-        RunningSource.pitch = targetPitch;
-    }
-    public void PlayHorn()
-    {
-       
-    }
-    public void StopHorn()
-    {
-        
-    }
-    private float CalculatePitch()
-    {
-        float pitch = CarMovement.Car_SpeedKPH / MaximumPitchValue + 1f;
-        return Mathf.Clamp(pitch, MinimumPitchValue, MaximumPitchValue);
+        startingSound.Play();
+        carMove.Car_SpeedKPH = 1;
+        yield return new WaitForSeconds(0.6f);
+        isEngineRunning = true;
+        yield return new WaitForSeconds(0.4f);
+        carMove.Car_SpeedKPH = 2;
     }
 }
+

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Collections.Generic;
 using VehiclePhysics;
 using UnityEngine.Events;
+using Unity.VisualScripting;
 public class CarMovement : MonoBehaviour
 {
     public List<WheelCollider> FrontWheels;
@@ -44,7 +45,7 @@ public class CarMovement : MonoBehaviour
     private bool isBoosting = false;
     private float currentBoostTime = 0f;
     public float Car_SpeedKPH;
-    bool CarStarted;
+    public bool CarStarted;
     [Space(10)]
     [Header("Events")]
     public UnityEvent<bool> OnBrakeStateChange = new UnityEvent<bool>();
@@ -80,8 +81,7 @@ public class CarMovement : MonoBehaviour
                 w.motorTorque = MotorTroque;
             }
             CarStarted = true;
-            audioController.StartEngineSound.Invoke();
-            audioController.StartIdelSound.Invoke();
+            StartCoroutine(GetComponent<AudioController>().StartEngine());
         }
         else
         {
@@ -94,16 +94,16 @@ public class CarMovement : MonoBehaviour
                 wheel.motorTorque = 0;
             }           
         }
+        
         if (Car_SpeedKPH < MaximumSpeed && CarStarted)
-        {
-            
+        {      
             foreach (WheelCollider wheel in BackWheels)
             {
                 wheel.motorTorque = Input.GetAxis("Vertical") * ((MotorTroque * 5) / (BackWheels.Count() + FrontWheels.Count()));
             }
         }
         Debug.Log("speed"+Car_SpeedKPH);
-        audioController.StartRunningSound.Invoke(); 
+        
         steerAngle = Input.GetAxis("Horizontal") * MaxSteerAngle;
         steerAngle = Mathf.Clamp(steerAngle,-MaxSteerAngle,MaxSteerAngle);
         foreach (WheelCollider frontWheel in FrontWheels)
@@ -114,6 +114,13 @@ public class CarMovement : MonoBehaviour
 
         Car_SpeedKPH = CarRigidbody.velocity.magnitude * 3.6f;
         Car_SpeedKPH = (int)Car_SpeedKPH;
+       /* if(Car_SpeedKPH < 1){
+            //.Invoke();
+        }*/
+        if(Car_SpeedKPH > 0){
+            //audioController.StartRunningSound.Invoke(); 
+        }
+        
 
 
         if (Input.GetKeyDown(BoostKeyCode) && CarStarted && !isBoosting && currentBoostTime <= 0)
@@ -123,6 +130,7 @@ public class CarMovement : MonoBehaviour
         IEnumerator ActivateBoost()
         {
             isBoosting = true;
+            Debug.Log("boosted");
             foreach (WheelCollider wheel in FrontWheels)
             {
                 wheel.motorTorque += BoostAmount;
@@ -182,6 +190,13 @@ public class CarMovement : MonoBehaviour
                 handBrakeFriction = tempo;
             }
         }
+    }
+    IEnumerator InvokeAfterDelay()
+    {
+        //audioController.StartEngineSound.Invoke();
+        yield return new WaitForSeconds(1f);
+        //audioController.StartRunningSound.Invoke();
+        
     }
     void WheelTransform()
     {
