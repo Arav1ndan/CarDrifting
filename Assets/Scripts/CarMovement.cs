@@ -102,7 +102,7 @@ public class CarMovement : MonoBehaviour
                 wheel.motorTorque = Input.GetAxis("Vertical") * ((MotorTroque * 5) / (BackWheels.Count() + FrontWheels.Count()));
             }
         }
-        Debug.Log("speed"+Car_SpeedKPH);
+        //Debug.Log("speed"+Car_SpeedKPH);
         
         steerAngle = Input.GetAxis("Horizontal") * MaxSteerAngle;
         steerAngle = Mathf.Clamp(steerAngle,-MaxSteerAngle,MaxSteerAngle);
@@ -197,6 +197,10 @@ public class CarMovement : MonoBehaviour
         yield return new WaitForSeconds(1f);
         //audioController.StartRunningSound.Invoke();
         
+    }
+    public float GetCarSpeed()
+    {
+        return Car_SpeedKPH;
     }
     void WheelTransform()
     {
